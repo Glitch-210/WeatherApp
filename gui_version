@@ -1,0 +1,103 @@
+import requests
+import json
+import win32com.client as wincom
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+class WeatherGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Weather App")
+        self.root.geometry("400x500")
+        self.speak = wincom.Dispatch("SAPI.SpVoice")
+        
+        # Create and pack widgets
+        self.create_widgets()
+        
+    def create_widgets(self):
+        # City entry
+        city_frame = ttk.Frame(self.root, padding="10")
+        city_frame.pack(fill=tk.X)
+        
+        ttk.Label(city_frame, text="Enter City:").pack(side=tk.LEFT)
+        self.city_entry = ttk.Entry(city_frame)
+        self.city_entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        ttk.Button(city_frame, text="Get Weather", command=self.get_weather).pack(side=tk.LEFT)
+        
+        # Results frame
+        self.result_frame = ttk.Frame(self.root, padding="10")
+        self.result_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Weather info labels
+        self.temp_label = ttk.Label(self.result_frame, text="")
+        self.temp_label.pack(pady=5)
+        
+        self.region_label = ttk.Label(self.result_frame, text="")
+        self.region_label.pack(pady=5)
+        
+        self.country_label = ttk.Label(self.result_frame, text="")
+        self.country_label.pack(pady=5)
+        
+        self.updated_label = ttk.Label(self.result_frame, text="")
+        self.updated_label.pack(pady=5)
+        
+        self.wind_speed_label = ttk.Label(self.result_frame, text="")
+        self.wind_speed_label.pack(pady=5)
+        
+        self.wind_degree_label = ttk.Label(self.result_frame, text="")
+        self.wind_degree_label.pack(pady=5)
+        
+        # Speak button
+        ttk.Button(self.root, text="Speak All Info", command=self.speak_all).pack(pady=10)
+        
+    def get_weather(self):
+        city = self.city_entry.get().strip().capitalize()
+        if not city:
+            messagebox.showerror("Error", "Please enter a city name")
+            return
+            
+        try:
+            url = f"https://api.weatherapi.com/v1/current.json?key=8b61fc85e6f24dc7a7694427243011&q={city}"
+            r = requests.get(url)
+            wdict = json.loads(r.text)
+            
+            # Store weather data
+            self.temp = wdict['current']['temp_c']
+            self.region = wdict['location']['region']
+            self.country = wdict['location']['country']
+            self.lp = wdict['current']['last_updated']
+            self.ws = wdict['current']['wind_kph']
+            self.wd = wdict['current']['wind_degree']
+            
+            # Update labels
+            self.temp_label.config(text=f"Temperature: {self.temp}°C")
+            self.region_label.config(text=f"Region: {self.region}")
+            self.country_label.config(text=f"Country: {self.country}")
+            self.updated_label.config(text=f"Last Updated: {self.lp}")
+            self.wind_speed_label.config(text=f"Wind Speed: {self.ws} kph")
+            self.wind_degree_label.config(text=f"Wind Degree: {self.wd}°")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to get weather data: {str(e)}")
+    
+    def speak_all(self):
+        if hasattr(self, 'temp'):
+            texts = [
+                f"Temperature is {self.temp} degrees celsius",
+                f"Region is {self.region}",
+                f"Country is {self.country}",
+                f"Last updated time is {self.lp}",
+                f"Wind Speed is {self.ws} kilometers per hour",
+                f"Wind degree is {self.wd} degrees"
+            ]
+            
+            for text in texts:
+                self.speak.Speak(text)
+
+def main():
+    root = tk.Tk()
+    app = WeatherGUI(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
